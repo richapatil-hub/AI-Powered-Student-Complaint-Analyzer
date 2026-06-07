@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Dashboard — AI Complaint Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0b0f1a; --surface: #131929; --surface2: #1a2236;
+      --border: #1e2d45; --accent: #3b82f6; --accent2: #06b6d4;
+      --text: #e2e8f0; --muted: #64748b;
+      --success: #34d399; --warning: #fbbf24; --error: #f87171;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* NAV */
+    nav {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 60px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; }
+    .nav-logo span { color: var(--accent); }
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
+    .user-chip {
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 6px 14px; border-radius: 20px; font-size: 13px; color: var(--muted);
+    }
+    .btn-logout {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 6px 14px; border-radius: 8px;
+      font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover { border-color: var(--error); color: var(--error); }
+
+    /* LAYOUT */
+    .container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    h2 { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; }
+
+    /* STATS */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.25rem 1.5rem;
+    }
+    .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .stat-val { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; }
+    .stat-val.blue { color: var(--accent); }
+    .stat-val.yellow { color: var(--warning); }
+    .stat-val.green { color: var(--success); }
+
+    /* FORM */
+    .form-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.75rem; margin-bottom: 2rem;
+    }
+    .form-card h3 { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 1.25rem; }
+    .field { margin-bottom: 1rem; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    input, select, textarea {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 11px 14px; color: var(--text);
+      font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 100px; }
+    select option { background: var(--surface); }
+
+    .ai-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2);
+      color: var(--accent); font-size: 12px; padding: 4px 10px; border-radius: 20px;
+      margin-bottom: 1rem;
+    }
+
+    .btn-submit {
+      width: 100%; padding: 13px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white; font-size: 14px; font-weight: 600;
+      font-family: 'DM Sans', sans-serif; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-submit:hover { opacity: 0.9; }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .msg { margin-top: 1rem; padding: 10px 14px; border-radius: 8px; font-size: 13px; display: none; }
+    .msg.success { background: rgba(52,211,153,0.1); color: var(--success); border: 1px solid rgba(52,211,153,0.2); display: block; }
+    .msg.error { background: rgba(248,113,113,0.1); color: var(--error); border: 1px solid rgba(248,113,113,0.2); display: block; }
+
+    /* AI RESULT */
+    .ai-result {
+      background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.15);
+      border-radius: 10px; padding: 12px 16px; margin-top: 0.75rem; display: none;
+      font-size: 13px;
+    }
+    .ai-result .cat { font-weight: 600; color: var(--accent); font-size: 15px; }
+
+    /* COMPLAINTS LIST */
+    .complaints-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .complaint-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.25rem 1.5rem;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      animation: fadeUp 0.3s ease both;
+    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .complaint-info { flex: 1; }
+    .complaint-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+    .complaint-desc { font-size: 13px; color: var(--muted); margin-bottom: 8px; line-height: 1.5; }
+    .complaint-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tag {
+      font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500;
+    }
+    .tag.category { background: rgba(59,130,246,0.1); color: var(--accent); }
+    .tag.pending { background: rgba(251,191,36,0.1); color: var(--warning); }
+    .tag.resolved { background: rgba(52,211,153,0.1); color: var(--success); }
+    .tag.in-progress { background: rgba(6,182,212,0.1); color: var(--accent2); }
+    .complaint-date { font-size: 12px; color: var(--muted); white-space: nowrap; margin-left: 1rem; }
+
+    .empty { text-align: center; color: var(--muted); padding: 3rem; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-logo">AI <span>Complaint</span> Analyzer</div>
+    <div class="nav-right">
+      <div class="user-chip" id="userChip">Loading...</div>
+      <button class="btn-logout" onclick="logout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Complaints</div>
+        <div class="stat-val blue" id="totalCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pending</div>
+        <div class="stat-val yellow" id="pendingCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Resolved</div>
+        <div class="stat-val green" id="resolvedCount">0</div>
+      </div>
+    </div>
+
+    <!-- Submit Form -->
+    <div class="form-card">
+      <h3>📝 Submit New Complaint</h3>
+      <div class="ai-badge">✨ AI-Powered Auto-Classification</div>
+
+      <div class="field">
+        <label>Complaint Title</label>
+        <input type="text" id="title" placeholder="Brief title of your complaint"/>
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea id="description" placeholder="Describe your complaint in detail..."></textarea>
+      </div>
+      <div class="field">
+        <label>Category (AI will auto-detect)</label>
+        <select id="category">
+          <option value="">🤖 Auto-detect with AI</option>
+          <option value="Academics">📚 Academics</option>
+          <option value="Hostel">🏠 Hostel</option>
+          <option value="IT Infrastructure">💻 IT Infrastructure</option>
+          <option value="Administration">🏛️ Administration</option>
+          <option value="Maintenance">🔧 Maintenance</option>
+          <option value="Examination">📝 Examination</option>
+          <option value="Other">📌 Other</option>
+        </select>
+      </div>
+
+      <div class="ai-result" id="aiResult">
+        🤖 AI detected category: <span class="cat" id="aiCat"></span>
+      </div>
+
+      <button class="btn-submit" onclick="submitComplaint()">Submit Complaint →</button>
+      <div id="formMsg" class="msg"></div>
+    </div>
+
+    <!-- Complaints List -->
+    <h2>📋 My Complaints</h2>
+    <div class="complaints-list" id="complaintsList">
+      <div class="empty">Loading your complaints...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, push, onValue, query, orderByChild, equalTo }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCUx_1QqEKU6M-QMnZ3VtGggPWFUuGqlB8",
+      authDomain: "complaint-a921f.firebaseapp.com",
+      databaseURL: "https://complaint-a921f-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "complaint-a921f",
+      storageBucket: "complaint-a921f.firebasestorage.app",
+      messagingSenderId: "1014033857240",
+      appId: "1:1014033857240:web:388f429998ec2e0499f5ad"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    let currentUser = null;
+
+    // Auth guard
+    onAuthStateChanged(auth, user => {
+      if (!user) { window.location.href = 'login.html'; return; }
+      currentUser = user;
+      document.getElementById('userChip').textContent = user.displayName || user.email;
+      loadComplaints(user.uid);
+    });
+
+    window.logout = async () => {
+      await signOut(auth);
+      window.location.href = 'login.html';
+    };
+
+    // AI Classification (keyword-based)
+    function classifyComplaint(text) {
+      const t = text.toLowerCase();
+      if (t.match(/exam|marks|grade|result|paper|syllabus|lecture|professor|faculty|assignment/)) return 'Academics';
+      if (t.match(/hostel|room|mess|food|warden|dormitory|bed|bathroom/)) return 'Hostel';
+      if (t.match(/wifi|internet|computer|lab|server|network|printer|software|system/)) return 'IT Infrastructure';
+      if (t.match(/fee|office|document|certificate|id card|admission|staff|administration/)) return 'Administration';
+      if (t.match(/repair|broken|leak|electricity|light|fan|ac|maintenance|clean/)) return 'Maintenance';
+      if (t.match(/exam|examination|hall ticket|schedule|timetable|paper|malpractice/)) return 'Examination';
+      return 'Other';
+    }
+
+    // Auto-classify on description input
+    document.getElementById('description').addEventListener('input', function() {
+      const val = this.value.trim();
+      const catSelect = document.getElementById('category');
+      if (val.length > 20 && catSelect.value === '') {
+        const cat = classifyComplaint(val);
+        document.getElementById('aiCat').textContent = cat;
+        document.getElementById('aiResult').style.display = 'block';
+      } else {
+        document.getElementById('aiResult').style.display = 'none';
+      }
+    });
+
+    window.submitComplaint = async () => {
+      const title = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
+      let category = document.getElementById('category').value;
+
+      if (!title || !description) {
+        showFormMsg('Please fill in title and description.', 'error'); return;
+      }
+
+      if (!category) category = classifyComplaint(description);
+
+      const btn = document.querySelector('.btn-submit');
+      btn.disabled = true; btn.textContent = 'Submitting...';
+
+      try {
+        await push(ref(db, 'complaints'), {
+          title, description, category,
+          status: 'Pending',
+          userId: currentUser.uid,
+          userName: currentUser.displayName || currentUser.email,
+          createdAt: Date.now()
+        });
+
+        showFormMsg('✅ Complaint submitted successfully!', 'success');
+        document.getElementById('title').value = '';
+        document.getElementById('description').value = '';
+        document.getElementById('category').value = '';
+        document.getElementById('aiResult').style.display = 'none';
+      } catch(e) {
+        showFormMsg('Failed to submit. Try again.', 'error');
+      }
+      btn.disabled = false; btn.textContent = 'Submit Complaint →';
+    };
+
+    function showFormMsg(text, type) {
+      const el = document.getElementById('formMsg');
+      el.textContent = text; el.className = 'msg ' + type;
+      setTimeout(() => el.className = 'msg', 4000);
+    }
+
+    function loadComplaints(uid) {
+      const q = query(ref(db, 'complaints'), orderByChild('userId'), equalTo(uid));
+      onValue(q, snap => {
+        const list = document.getElementById('complaintsList');
+        if (!snap.exists()) {
+          list.innerHTML = '<div class="empty">No complaints yet. Submit your first one above! 👆</div>';
+          updateStats([]); return;
+        }
+        const items = [];
+        snap.forEach(child => items.push({ id: child.key, ...child.val() }));
+        items.sort((a, b) => b.createdAt - a.createdAt);
+        updateStats(items);
+        list.innerHTML = items.map(c => `
+          <div class="complaint-item">
+            <div class="complaint-info">
+              <div class="complaint-title">${c.title}</div>
+              <div class="complaint-desc">${c.description}</div>
+              <div class="complaint-meta">
+                <span class="tag category">${c.category}</span>
+                <span class="tag ${c.status === 'Resolved' ? 'resolved' : c.status === 'In Progress' ? 'in-progress' : 'pending'}">${c.status}</span>
+              </div>
+            </div>
+            <div class="complaint-date">${new Date(c.createdAt).toLocaleDateString()}</div>
+          </div>
+        `).join('');
+      });
+    }
+
+    function updateStats(items) {
+      document.getElementById('totalCount').textContent = items.length;
+      document.getElementById('pendingCount').textContent = items.filter(i => i.status === 'Pending').length;
+      document.getElementById('resolvedCount').textContent = items.filter(i => i.status === 'Resolved').length;
+    }
+  </script>
+</body>
+</html>
